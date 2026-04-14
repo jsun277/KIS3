@@ -26,7 +26,14 @@ export default async function Home() {
   return (
     <div className="mx-auto max-w-6xl px-6 py-12">
       <div className="mb-10">
-        <h1 className="text-3xl font-bold tracking-tight">Class Bookshelf</h1>
+        <div className="flex items-baseline justify-between">
+          <h1 className="text-3xl font-bold tracking-tight">Class Bookshelf</h1>
+          {books.length > 0 && (
+            <span className="text-sm text-zinc-500 dark:text-zinc-400">
+              {books.length} {books.length === 1 ? "book" : "books"}
+            </span>
+          )}
+        </div>
         <p className="mt-2 text-zinc-500 dark:text-zinc-400">
           Books saved by everyone in the class.{" "}
           <Link

@@ -30,21 +30,41 @@ export default function SearchPage() {
   const [query, setQuery] = useState("");
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<Set<string>>(new Set());
+  const [saving, setSaving] = useState<Set<string>>(new Set());
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     if (!query.trim()) return;
 
     setLoading(true);
-    const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-    const data = await res.json();
-    setBooks(data.books);
-    setLoading(false);
+    setError(null);
+    setSearched(true);
+
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+
+      if (data.error) {
+        setError(data.error);
+        setBooks([]);
+      } else {
+        setBooks(data.books);
+      }
+    } catch {
+      setError("Something went wrong. Check your connection and try again.");
+      setBooks([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleSave(book: Book) {
     if (!user) return;
+
+    setSaving((prev) => new Set(prev).add(book.ol_key));
 
     const coverUrl = book.cover_id
       ? `https://covers.openlibrary.org/b/id/${book.cover_id}-M.jpg`
@@ -58,8 +78,18 @@ export default function SearchPage() {
       ol_key: book.ol_key,
     });
 
+    setSaving((prev) => {
+      const next = new Set(prev);
+      next.delete(book.ol_key);
+      return next;
+    });
+
     if (error) {
-      alert("Error saving: " + error.message);
+      if (error.code === "23505") {
+        setSaved((prev) => new Set(prev).add(book.ol_key));
+      } else {
+        alert("Error saving: " + error.message);
+      }
     } else {
       setSaved((prev) => new Set(prev).add(book.ol_key));
     }
@@ -80,6 +110,7 @@ export default function SearchPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by title or author..."
+          aria-label="Search books"
           className="flex-1 rounded-lg border border-zinc-300 bg-white px-4 py-3 text-zinc-900 shadow-sm placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-200 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-zinc-700"
         />
         <button
@@ -91,7 +122,36 @@ export default function SearchPage() {
         </button>
       </form>
 
-      {books.length > 0 && (
+      {error && (
+        <div className="mb-8 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+          {error}
+        </div>
+      )}
+
+      {loading && (
+        <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="flex flex-col animate-pulse">
+              <div className="aspect-[2/3] rounded-xl bg-zinc-200 dark:bg-zinc-800" />
+              <div className="mt-3 h-4 w-3/4 rounded bg-zinc-200 dark:bg-zinc-800" />
+              <div className="mt-1.5 h-3 w-1/2 rounded bg-zinc-200 dark:bg-zinc-800" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!loading && searched && books.length === 0 && !error && (
+        <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-200 py-20 dark:border-zinc-800">
+          <p className="text-lg text-zinc-400">
+            No results found for &ldquo;{query}&rdquo;
+          </p>
+          <p className="mt-2 text-sm text-zinc-400">
+            Try a different title or author name.
+          </p>
+        </div>
+      )}
+
+      {!loading && books.length > 0 && (
         <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {books.map((book) => (
             <div key={book.ol_key} className="group flex flex-col">
@@ -116,10 +176,14 @@ export default function SearchPage() {
               </p>
               <button
                 onClick={() => handleSave(book)}
-                disabled={saved.has(book.ol_key)}
+                disabled={saved.has(book.ol_key) || saving.has(book.ol_key)}
                 className="mt-2 self-start rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:bg-zinc-300 disabled:text-zinc-500 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 dark:disabled:bg-zinc-700 dark:disabled:text-zinc-500"
               >
-                {saved.has(book.ol_key) ? "Saved" : "Save"}
+                {saved.has(book.ol_key)
+                  ? "Saved"
+                  : saving.has(book.ol_key)
+                    ? "Saving..."
+                    : "Save"}
               </button>
             </div>
           ))}

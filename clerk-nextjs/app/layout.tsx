@@ -47,7 +47,7 @@ export default function RootLayout({
                   Bookshelf
                 </Link>
                 <Show when="signed-in">
-                  <div className="flex items-center gap-6">
+                  <div className="hidden items-center gap-6 sm:flex">
                     <Link
                       href="/"
                       className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
@@ -87,6 +87,28 @@ export default function RootLayout({
                 </Show>
               </div>
             </div>
+            <Show when="signed-in">
+              <div className="flex items-center justify-center gap-6 border-t border-zinc-100 py-2 sm:hidden dark:border-zinc-800">
+                <Link
+                  href="/"
+                  className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                >
+                  Home
+                </Link>
+                <Link
+                  href="/search"
+                  className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                >
+                  Search
+                </Link>
+                <Link
+                  href="/my-books"
+                  className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                >
+                  My Books
+                </Link>
+              </div>
+            </Show>
           </nav>
           <main className="flex-1">{children}</main>
         </ClerkProvider>
